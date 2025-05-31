@@ -6,6 +6,8 @@ _start:
 
 .include "src/program/i2c_setup.s"
 
+.include "src/program/i2c_lcd_1602_driver.s"
+
 // {{{ Processor Sleep 
     wfi
 // }}}

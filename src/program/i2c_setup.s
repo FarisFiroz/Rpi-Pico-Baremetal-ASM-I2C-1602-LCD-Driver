@@ -151,11 +151,3 @@ i2c_enable_on:
     ldr r7, =i2c0_base
 
 // }}}
-
-// Test Code {{{
-.equ i2c_data_offset, 0x10
-
-lcd_init:
-    ldr r6, =(0b010<<8) + 0b00000000
-    str r6, [r7, #i2c_data_offset]
-// }}}
