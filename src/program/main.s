@@ -9,3 +9,13 @@ _start:
 // {{{ Processor Sleep 
     wfi
 // }}}
+
+/* {{{ Unused Delay Function
+delay:
+    ldr r5, =0x10000
+delay2:
+    sub r5, #1
+    bne delay2
+
+    bx lr
+}}} */ 
