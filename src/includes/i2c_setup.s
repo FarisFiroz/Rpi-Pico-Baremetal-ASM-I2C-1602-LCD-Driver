@@ -86,6 +86,8 @@ STEP 2: Wait for i2c0 to be disabled
 STEP 3: Use the i2c0 control register to set standard speed, 7-bit addressing for the master (not necessary since already 7-bit by default), and disable slave bit and enable master bit (not necessary since already the default)
 STEP 4: Write the address of the I2C device to be adressed to the i2c0 target register
 STEP 5: Enable I2C0
+STEP 6: Wait for I2C0 to be enabled
+STEP 7: Jump to main function
 
 I2C Addresses:
     The I2C address for the 1602 LCD Module is 0x27
@@ -142,12 +144,10 @@ i2c_enable_off:
     ldr r6, =i2c_enable_write_val
     str r6, [r7, #i2c_enable_offset]
 
-// STEP 2
+// STEP 6
     ldr r7, =i2c_enable_status
 i2c_enable_on:
     ldr r5, [r7]
     cmp r5, r6
     bhi i2c_enable_on
-    ldr r7, =i2c0_base
-
 // }}}
