@@ -10,17 +10,17 @@ description:
 
 }}} */
 
-/* {{{ Unused Delay Function
+// {{{ Delay Function
 delay:
-    ldr r5, =0x10000
+    ldr r5, =0x100000
 delay2:
     sub r5, #1
     bne delay2
 
     bx lr
-}}} */ 
+// }}}
 
-/* Write Function {{{ 
+/* I2C Write Function {{{ 
 
 description:
     This function will write a value to the i2c_data_cmd buffer. It will also check whether the function is globally available to use.
@@ -32,11 +32,9 @@ equates:
     i2c0_data_cmd: Holds the register that will hold data to write to the LCD
 
 stack map:
-----------------------------------
-| Byte of data to write over i2c |
-----------------------------------
-| Link Register Value            |
-----------------------------------
+-----------------------------------------
+| HEAD | Byte of data to write over i2c |
+-----------------------------------------
 
 */
 
@@ -47,18 +45,86 @@ i2c_write:
 
     pop {r6} // byte of data to write to the LCD
 
-    mov r0, #1
-    lsl r0, #9 
-    add r6, r0 // Send stop bit after transmission
+    mov r5, #1
+    lsl r5, #9 
+    add r6, r5 // Send stop bit after transmission
 
 i2c_write_check:
     ldr r5, [r7, #0x60] // Load data from i2c status register
-    mov r0, #0b10 // Bit in i2c status register that shows if tx fifo is full or not
-    and r5, r0 // Check if bit 2 of the i2c status register is set. If so, then the fifo is not full
+    mov r4, #0b10 // Bit in i2c status register that shows if tx fifo is full or not
+    and r5, r4 // Check if bit 2 of the i2c status register is set. If so, then the fifo is not full
     beq i2c_write_check // If bit 2 of the i2c status register is not set, then the fifo is full. In which case, loop and check again.
 
     str r6, [r7] // Write to LCD
     bx lr // Return from subroutine
+
+// }}}
+
+/* LCD Write Function {{{ 
+
+description:
+    This function takes an input of a data byte to send to the LCD, splits it into two 4-byte sections (as we will use 4-bit mode), and then appends 4 more bytes to each section for the final 3 pins and backlight.
+
+register params:
+    r0: Holds the entire data byte that will be sent to the LCD
+
+*/
+
+lcd_write:
+    push {lr}
+
+    // HIGH BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1000
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    bl delay
+    // HIGH BITS (EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1100
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    bl delay
+    // HIGH BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1000
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    bl delay
+
+    lsl r0, #4
+    // LOW BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1000
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    bl delay
+    // LOW BITS (EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1100
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    bl delay
+    // LOW BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1000
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    bl delay
+
+    pop {pc}
 
 // }}}
 
@@ -73,9 +139,51 @@ params: N/A
 
 .global lcd_init
 lcd_init:
-    mov r0, #0
-    push {r0, lr}
+    push {lr}
+
+    mov r1, #0b0
+
+    mov r0, #0b00100000
+    // Change to 4 bit mode
+    // HIGH BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1000
+    push {r7}
     bl i2c_write
+    bl delay
+    // HIGH BITS (EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1100
+    push {r7}
+    bl i2c_write
+    bl delay
+    // HIGH BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, #0b1000
+    push {r7}
+    bl i2c_write
+    bl delay
+
+    mov r0, #0b00000001
+    bl lcd_write
+
+    mov r0, #0b00000010
+    bl lcd_write
+
+    mov r0, #0b00001110
+    bl lcd_write
+
+    mov r1, #0b1
+
+    mov r0, #72
+    bl lcd_write
+
+    mov r0, #73
+    bl lcd_write
+
     pop {pc}
 
 // }}}
