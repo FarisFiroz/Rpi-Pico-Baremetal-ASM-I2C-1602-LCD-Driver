@@ -12,7 +12,7 @@ description:
 
 // {{{ Delay Function
 delay:
-    ldr r5, =0x100000
+    ldr r5, =0x015000
 delay2:
     sub r5, #1
     bne delay2
@@ -76,7 +76,6 @@ lcd_write:
     // HIGH BITS (!EN)
     mov r7, #0xf0
     and r7, r0
-    add r7, #0b1000
     add r7, r1
     push {r7}
     bl i2c_write
@@ -84,15 +83,14 @@ lcd_write:
     // HIGH BITS (EN)
     mov r7, #0xf0
     and r7, r0
-    add r7, #0b1100
     add r7, r1
+    add r7, #0b0100
     push {r7}
     bl i2c_write
     bl delay
     // HIGH BITS (!EN)
     mov r7, #0xf0
     and r7, r0
-    add r7, #0b1000
     add r7, r1
     push {r7}
     bl i2c_write
@@ -102,7 +100,6 @@ lcd_write:
     // LOW BITS (!EN)
     mov r7, #0xf0
     and r7, r0
-    add r7, #0b1000
     add r7, r1
     push {r7}
     bl i2c_write
@@ -110,15 +107,14 @@ lcd_write:
     // LOW BITS (EN)
     mov r7, #0xf0
     and r7, r0
-    add r7, #0b1100
     add r7, r1
+    add r7, #0b0100
     push {r7}
     bl i2c_write
     bl delay
     // LOW BITS (!EN)
     mov r7, #0xf0
     and r7, r0
-    add r7, #0b1000
     add r7, r1
     push {r7}
     bl i2c_write
@@ -141,7 +137,7 @@ params: N/A
 lcd_init:
     push {lr}
 
-    mov r1, #0b0
+    mov r1, #0b1000
 
     mov r0, #0b00100000
     // Change to 4 bit mode
@@ -176,12 +172,12 @@ lcd_init:
     mov r0, #0b00001110
     bl lcd_write
 
-    mov r1, #0b1
+    mov r1, #0b1001
 
-    mov r0, #72
+    mov r0, #'H'
     bl lcd_write
 
-    mov r0, #73
+    mov r0, #'I'
     bl lcd_write
 
     pop {pc}
