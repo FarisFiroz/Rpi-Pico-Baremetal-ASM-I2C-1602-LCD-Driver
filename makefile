@@ -42,4 +42,4 @@ debug: $(ELF)
 # Clean build files
 clean:
 	rm -rf $(TAR_DIR)
-	rm -f $(ELF)
+	rm -f $(ELF) $(UF2)
