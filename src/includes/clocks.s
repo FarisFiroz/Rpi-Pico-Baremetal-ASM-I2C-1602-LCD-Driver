@@ -47,7 +47,7 @@ xosc_rdy:
 
 // STEP 5
 clk_ref_rdy:
-    ldr r6, [r7, #xosc_status_offset]
+    ldr r6, [r7, #0x8]
     lsr r6, #2
     beq clk_ref_rdy
 
