@@ -3,6 +3,7 @@ INCLUDE_DIR := src/includes
 SRC_DIRS := src/required src/program
 TAR_DIR := build_garbage
 ELF := final.elf
+UF2 := final.uf2
 
 # All Include files
 INCLUDES := $(foreach dir,$(INCLUDE_DIR),$(wildcard $(dir)/*.s))
@@ -30,6 +31,11 @@ $(ELF): $(TAR)
 
 flash: $(ELF)
 	sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000" -c "program $(ELF) verify reset exit"
+
+uf2: $(UF2)
+
+$(UF2): $(ELF)
+	elf2uf2-rs $< $@
 
 debug: $(ELF)
 	@echo "Caching Root Privileges"; \
