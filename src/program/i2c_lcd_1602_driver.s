@@ -73,7 +73,7 @@ description:
 
 register params:
     r0: Holds the entire data byte that will be sent to the LCD
-    r1: Holds the 
+    r1: Holds En, Rs, R/W, and backlight control pin data
 
 registers modified:
     r2, r7
@@ -120,14 +120,13 @@ description:
     This function will initialize the LCD according to the datasheet. 
     It will initialize the LCD in 4-bit, 1 display line, with a 5x8 character font.
 
-params: N/A
+params:
+    r1: Holds En, Rs, R/W, and backlight control pin data
 */
 
 .global lcd_init
 lcd_init:
     push {lr}
-
-    mov r1, #0b1000
 
 // STEP 1
     mov r2, #4
@@ -158,13 +157,20 @@ init_part_1:
     b init_part_1
 
 init_part_2:
+    // Function Set 4 bit - 1 line - 5x8 dots
+    mov r0, #0b00100000
+    bl lcd_write
+
+    // Clear Display
     mov r0, #0b00000001
     bl lcd_write
 
+    // Return Home
     mov r0, #0b00000010
     bl lcd_write
 
-    mov r0, #0b00001110
+    // Display On - Cursor Off - Blinking off
+    mov r0, #0b00001100
     bl lcd_write
 
     pop {pc}

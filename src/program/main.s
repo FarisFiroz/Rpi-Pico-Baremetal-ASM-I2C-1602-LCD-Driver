@@ -7,9 +7,10 @@ _start:
 
 .global main
 main:
+    mov r1, #0b1000
     bl lcd_init
 
-    mov r1, #0b1001
+    add r1, #0b1
 
     mov r0, #'H'
     bl lcd_write
@@ -22,10 +23,12 @@ main:
     mov r0, #'o'
     bl lcd_write
 
-    mov r0, #' '
+    sub r1, #0b1
+    mov r0, #0b1000<<4 + 0b1010
     bl lcd_write
+    add r1, #0b1
 
-    mov r0, #'w'
+    mov r0, #'W'
     bl lcd_write
     mov r0, #'o'
     bl lcd_write
