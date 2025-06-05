@@ -9,7 +9,7 @@ SRC := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.s))
 # Map to object files (flattened)
 TAR := $(addprefix $(TAR_DIR)/, $(notdir $(SRC:.s=.o)))
 
-.PHONY: all flash clean
+.PHONY: all flash clean uf2
 
 # Default target
 all: $(ELF)
