@@ -10,17 +10,17 @@ description:
 
 }}} */
 
-/* {{{ Unused Delay Function
+// {{{ Delay Function
 delay:
-    ldr r5, =0x10000
+    ldr r5, =0x15000
 delay2:
     sub r5, #1
     bne delay2
 
     bx lr
-}}} */ 
+// }}}
 
-/* Write Function {{{ 
+/* I2C Write Function {{{ 
 
 description:
     This function will write a value to the i2c_data_cmd buffer. It will also check whether the function is globally available to use.
@@ -32,11 +32,15 @@ equates:
     i2c0_data_cmd: Holds the register that will hold data to write to the LCD
 
 stack map:
-----------------------------------
-| Byte of data to write over i2c |
-----------------------------------
-| Link Register Value            |
-----------------------------------
+-----------------------------------------
+| HEAD | Byte of data to write over i2c |
+-----------------------------------------
+
+register ignore:
+    This should actively never touch or use registers r0 and r1
+
+registers modified:
+    r4, r5, r6, r7
 
 */
 
@@ -47,18 +51,66 @@ i2c_write:
 
     pop {r6} // byte of data to write to the LCD
 
-    mov r0, #1
-    lsl r0, #9 
-    add r6, r0 // Send stop bit after transmission
+    mov r5, #1
+    lsl r5, #9 
+    add r6, r5 // Send stop bit after transmission
 
 i2c_write_check:
     ldr r5, [r7, #0x60] // Load data from i2c status register
-    mov r0, #0b10 // Bit in i2c status register that shows if tx fifo is full or not
-    and r5, r0 // Check if bit 2 of the i2c status register is set. If so, then the fifo is not full
+    mov r4, #0b10 // Bit in i2c status register that shows if tx fifo is full or not
+    and r5, r4 // Check if bit 2 of the i2c status register is set. If so, then the fifo is not full
     beq i2c_write_check // If bit 2 of the i2c status register is not set, then the fifo is full. In which case, loop and check again.
 
     str r6, [r7] // Write to LCD
     bx lr // Return from subroutine
+
+// }}}
+
+/* LCD Write Function {{{ 
+
+description:
+    This function takes an input of a data byte to send to the LCD, splits it into two 4-byte sections (as we will use 4-bit mode), and then appends 4 more bytes to each section for the final 3 pins and backlight.
+
+register params:
+    r0: Holds the entire data byte that will be sent to the LCD
+    r1: Holds En, Rs, R/W, and backlight control pin data
+
+registers modified:
+    r2, r7
+
+*/
+
+.global lcd_write
+lcd_write:
+    push {lr}
+    mov r2, #2
+
+lcd_write_p1:
+    // HIGH BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, r1
+    push {r7}
+    bl i2c_write
+    // HIGH BITS (EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, r1
+    add r7, #0b0100
+    push {r7}
+    bl i2c_write
+    // HIGH BITS (!EN)
+    mov r7, #0xf0
+    and r7, r0
+    add r7, r1
+    push {r7}
+    bl i2c_write
+
+    lsl r0, #4
+    sub r2, #1
+    bhi lcd_write_p1
+
+    pop {pc}
 
 // }}}
 
@@ -68,14 +120,59 @@ description:
     This function will initialize the LCD according to the datasheet. 
     It will initialize the LCD in 4-bit, 1 display line, with a 5x8 character font.
 
-params: N/A
+params:
+    r1: Holds En, Rs, R/W, and backlight control pin data
 */
 
 .global lcd_init
 lcd_init:
-    mov r0, #0
-    push {r0, lr}
+    push {lr}
+
+// STEP 1
+    mov r2, #4
+    mov r0, #0b0011<<4
+init_part_1:
+    // Change to 8 bit mode
+    add r0, r1
+    // HIGH BITS (!EN)
+    push {r0}
     bl i2c_write
+    // HIGH BITS (EN)
+    add r0, #0b0100
+    push {r0}
+    sub r0, #0b0100
+    bl i2c_write
+    // HIGH BITS (!EN)
+    push {r0}
+    bl i2c_write
+    sub r2, #1
+    bhi init_part_1
+
+    sub r0, r1
+    cmp r0, #0b0010<<4
+    bls init_part_2
+    // Change to 4 bit mode
+    mov r2, #1
+    mov r0, #0b0010<<4
+    b init_part_1
+
+init_part_2:
+    // Function Set 4 bit - 1 line - 5x8 dots
+    mov r0, #0b00100000
+    bl lcd_write
+
+    // Clear Display
+    mov r0, #0b00000001
+    bl lcd_write
+
+    // Return Home
+    mov r0, #0b00000010
+    bl lcd_write
+
+    // Display On - Cursor Off - Blinking off
+    mov r0, #0b00001100
+    bl lcd_write
+
     pop {pc}
 
 // }}}

@@ -1,7 +1,12 @@
 # Config
+INCLUDE_DIR := src/includes
 SRC_DIRS := src/required src/program
 TAR_DIR := build_garbage
 ELF := final.elf
+UF2 := final.uf2
+
+# All Include files
+INCLUDES := $(foreach dir,$(INCLUDE_DIR),$(wildcard $(dir)/*.s))
 
 # Gather all source files
 SRC := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.s))
@@ -15,7 +20,7 @@ TAR := $(addprefix $(TAR_DIR)/, $(notdir $(SRC:.s=.o)))
 all: $(ELF)
 
 # Compile each source into a flattened object file
-$(TAR_DIR)/%.o: $(SRC)
+$(TAR_DIR)/%.o: $(SRC) $(INCLUDES)
 	@mkdir -p $(dir $@)
 	arm-none-eabi-as -mcpu=cortex-m0plus -mthumb --warn $(filter %/$*.s, $(SRC)) -o $@
 
@@ -27,6 +32,11 @@ $(ELF): $(TAR)
 flash: $(ELF)
 	sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000" -c "program $(ELF) verify reset exit"
 
+uf2: $(UF2)
+
+$(UF2): $(ELF)
+	elf2uf2-rs $< $@
+
 debug: $(ELF)
 	@echo "Caching Root Privileges"; \
 	sudo -v || exit $$?; \
@@ -35,7 +45,7 @@ debug: $(ELF)
 	OCD_PID=$$!; \
 	sleep 1; \
 	echo "Starting GDB..."; \
-	gdb -ex "target remote localhost:3333" $<; \
+	gdb -ex "target remote localhost:3333" -ex "monitor reset init" -ex "break *&_start" -ex "c" $<; \
 	echo "Killing OpenOCD..."; \
 	sudo kill $$OCD_PID
 
